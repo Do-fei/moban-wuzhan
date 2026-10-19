@@ -15,6 +15,8 @@
 
 ![标题页](docs/screenshots/title-desktop.jpg)
 
+![iPhone WebKit 阅读界面](docs/screenshots/iphone-webkit-game.jpg)
+
 ## 在线游玩与安装
 
 - Mac Chrome / Edge：打开 <https://do-fei.github.io/moban-wuzhan/>，满足条件时地址栏右侧会出现安装图标。
@@ -81,7 +83,16 @@ Manifest、图标和 Service Worker 会随 `VITE_BASE_PATH` 自动使用 `/moban
 
 安装按钮只在浏览器实际派发 `beforeinstallprompt` 后出现。未收到事件时，设置页显示准确的手动安装说明，而不是无效按钮。
 
-### 离线验证（建议按此复现）
+### 离线验证
+
+**线上地址（推荐直接复现）：**
+
+1. 打开 <https://do-fei.github.io/moban-wuzhan/>，等待页面加载完成，停留几秒让 Service Worker 完成安装。
+2. DevTools → Application → Service Workers，确认 `/moban-wuzhan/sw.js` 已 activated；Cache Storage 中应出现 `moban-wuzhan-<hash>`。
+3. DevTools → Network 勾选 Offline，或直接断网，然后刷新页面。
+4. 页面应从缓存启动，并能继续阅读、存档、查看图鉴。
+
+**本地方式：**
 
 1. `npm run build && npm run preview`
 2. 浏览器打开 `http://127.0.0.1:4173/`，等待页面加载完成，停留几秒让 Service Worker 完成安装。
@@ -89,7 +100,7 @@ Manifest、图标和 Service Worker 会随 `VITE_BASE_PATH` 自动使用 `/moban
 4. Application → Storage 勾选 Offline，或直接断网，然后刷新页面。
 5. 页面应从缓存启动，并能继续阅读、存档、查看图鉴和完成全部剧情。
 
-本项目已在 headless Chrome 中执行过上述离线刷新检查（见“验证结果”）。
+本项目已在线上 GitHub Pages 的 headless Chrome 与 WebKit 中执行过离线刷新检查（见“验证结果”）。
 
 ### 缓存策略
 
@@ -126,7 +137,9 @@ scripts/
   generate-icons.py
   validate-story.ts
   validate-save.ts
-  browser-check.mjs
+  browser-check.mjs  线上 Chrome 全流程 / 离线 / 移动端检查
+  webkit-check.mjs   WebKit（iPhone 视口）检查
+  installability-check.mjs  Chrome 安装性检查
 docs/
   SPOILERS.md      剧透：结局条件、变量与可复现路径
   screenshots/
@@ -153,7 +166,7 @@ localStorage 键：
 
 ## 验证结果
 
-执行日期：2026-10-19。环境：macOS，Node 22.22.2，Chrome 无头模式，生产构建预览。
+执行日期：2026-10-19。线上地址：<https://do-fei.github.io/moban-wuzhan/>。环境：macOS，Node 22.22.2，Chrome 无头模式；Playwright WebKit 27.2（iPhone 13 视口）。
 
 已执行：
 
@@ -171,8 +184,14 @@ npm run test:save
 npm run build
 # TypeScript 检查与生产构建通过；Service Worker 生成 10 个预缓存入口
 
-npm run test:e2e   # 需先启动 npm run preview
-# 17 项浏览器检查通过，0 个控制台错误
+npm run test:e2e:live
+# 17 项 Chrome 检查通过，0 个控制台错误（线上 GitHub Pages，含断网刷新）
+
+npm run test:webkit:live
+# 6 项 WebKit 检查通过，0 个控制台错误（iPhone 13 视口）
+
+npm run test:installability
+# Manifest 解析无误；安装性检查唯一报错为 in-incognito（无头/无痕环境限制）
 ```
 
 浏览器检查覆盖：
@@ -184,20 +203,23 @@ npm run test:e2e   # 需先启动 npm run preview
 - 新周目清空线索并保留图鉴
 - Service Worker 激活并接管页面，Manifest 与 192/512/maskable 图标可访问
 - 断网刷新后仍加载应用
-- 390×844 触屏视口下正文、历史、设置与选项无横向溢出
+- 390×844 Chromium 触屏视口下正文、历史、设置与选项无横向溢出
+- iPhone 13 WebKit 视口下标题页、阅读界面、设置、真相结局与断网启动正常
+- 线上 GitHub Pages 的 HTTPS、Manifest、Service Worker、图标和离线刷新正常
+- Chrome 安装性检查只返回 `in-incognito`，没有 Manifest/图标/Service Worker 层面的安装阻断错误
 
 未验证 / 仅部分验证：
 
-- **未在真实 Android/iOS 设备上执行“添加到主屏幕”安装**。无头 Chrome 不会派发真实的安装确认 UI；安装按钮、Manifest、图标与手动说明已做代码/HTTP 层验证，但系统安装流程仍需按上文在真机复现。
-- **未验证 HTTPS 真实域名部署**。只在 localhost 生产预览中验证了 Service Worker 与离线刷新；真实域名需配置 TLS 后按相同步骤复核。
-- **未在 Safari/iOS 上验证离线启动**。Safari 的 Service Worker 生命周期和安装限制与 Chrome 不同。
-- **Web Audio 仅在无头浏览器中验证无控制台异常，未做真机声学检查**。环境声是低音量合成音，建议在目标设备上试听并调整系统音量/游戏音量。
-- 手机尺寸使用 Chromium 设备模拟，不是真实触屏硬件。
+- **未在真实 iPhone Chrome 上实际点击“添加到主屏幕”并验证系统安装流程**。已用 WebKit 引擎与 iPhone 13 视口验证网页、Service Worker、结局与离线启动；真实 iOS 安装菜单和硬件触控仍需你在手机上确认。
+- **未在真实 Android 设备上执行安装**。
+- **Web Audio 仅在浏览器自动化环境中验证无控制台异常，未做真机声学检查**。
+- iPhone 13 与 390×844 检查使用设备模拟，不是实体触屏硬件。
+- Chrome 安装性检查运行在无痕无头上下文，因此唯一报错 `in-incognito`；这不代表普通 Chrome 会被阻止安装，但真实安装确认仍需手动点击。
 
 建议你执行：
 
-1. Chrome 桌面安装应用 → 完全退出浏览器 → 断网 → 从桌面图标启动。
-2. iPhone Safari“添加到主屏幕”后断网启动，确认竖屏安全区域与触控。
+1. Mac Chrome 打开 <https://do-fei.github.io/moban-wuzhan/> → 地址栏安装 → 完全退出后断网 → 从桌面图标启动。
+2. iPhone Chrome 打开同一网址 → 分享 →“添加到主屏幕” → 断网启动；若 Chrome 没有入口，用 Safari 的分享菜单。
 3. 打开系统“减少动态效果”，确认雾气/雨丝/过渡停止。
 4. 在真实设备上试听环境声、静音和音量滑杆。
 
@@ -208,6 +230,15 @@ npm run test:e2e   # 需先启动 npm run preview
 ## 内容声明
 
 本作人物、事故、井与街道事件均为原创虚构。作品借用“北新桥锁龙井”“末班公交”等民间传说的意象与旧城空间感，但不把传说写成真实历史，也不影射任何真实人物或事件。文中 1999 年事故、车队处理与档案记录均属虚构。
+
+## 部署
+
+- 源码仓库：<https://github.com/Do-fei/moban-wuzhan>
+- 线上站点：<https://do-fei.github.io/moban-wuzhan/>
+- 托管：GitHub Pages（免费、HTTPS、静态站点）
+- 发布分支：`gh-pages`，内容来自 `npm run build:pages` 的 `dist/`
+
+GitHub Pages 只托管静态文件，不需要后端。要更新站点，重新运行 `npm run build:pages`，并把 `dist/` 内容覆盖到 `gh-pages` 分支即可。
 
 ## 技术栈
 

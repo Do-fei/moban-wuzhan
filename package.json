@@ -11,7 +11,10 @@
     "test:save": "tsx scripts/validate-save.ts",
     "verify": "npm run test:story && npm run test:save && npm run build",
     "test:e2e": "node scripts/browser-check.mjs",
-    "build:pages": "VITE_BASE_PATH=/moban-wuzhan/ npm run build"
+    "build:pages": "VITE_BASE_PATH=/moban-wuzhan/ npm run build",
+    "test:e2e:live": "BASE_URL=https://do-fei.github.io/moban-wuzhan/ node scripts/browser-check.mjs",
+    "test:webkit:live": "PLAYWRIGHT_BROWSERS_PATH=.playwright BASE_URL=https://do-fei.github.io/moban-wuzhan/ node scripts/webkit-check.mjs",
+    "test:installability": "node scripts/installability-check.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
