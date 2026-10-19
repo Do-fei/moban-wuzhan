@@ -191,7 +191,7 @@ npm run test:webkit:live
 # 6 项 WebKit 检查通过，0 个控制台错误（iPhone 13 视口）
 
 npm run test:installability
-# Manifest 解析无误；安装性检查唯一报错为 in-incognito（无头/无痕环境限制）
+# beforeinstallprompt 已派发；安装性错误 0 条
 ```
 
 浏览器检查覆盖：
@@ -206,15 +206,16 @@ npm run test:installability
 - 390×844 Chromium 触屏视口下正文、历史、设置与选项无横向溢出
 - iPhone 13 WebKit 视口下标题页、阅读界面、设置、真相结局与断网启动正常
 - 线上 GitHub Pages 的 HTTPS、Manifest、Service Worker、图标和离线刷新正常
-- Chrome 安装性检查只返回 `in-incognito`，没有 Manifest/图标/Service Worker 层面的安装阻断错误
+- 持久化 Chrome 配置中实际派发 `beforeinstallprompt`，`Page.getInstallabilityErrors` 返回 0 条错误
+- 线上 HTTPS 部署与 PWA 安装入口具备触发条件
 
 未验证 / 仅部分验证：
 
+- **未点击浏览器系统安装确认按钮完成最终安装**。已验证 `beforeinstallprompt` 实际派发、安装性错误为 0；是否确认安装由你在浏览器中点击决定。
 - **未在真实 iPhone Chrome 上实际点击“添加到主屏幕”并验证系统安装流程**。已用 WebKit 引擎与 iPhone 13 视口验证网页、Service Worker、结局与离线启动；真实 iOS 安装菜单和硬件触控仍需你在手机上确认。
 - **未在真实 Android 设备上执行安装**。
 - **Web Audio 仅在浏览器自动化环境中验证无控制台异常，未做真机声学检查**。
 - iPhone 13 与 390×844 检查使用设备模拟，不是实体触屏硬件。
-- Chrome 安装性检查运行在无痕无头上下文，因此唯一报错 `in-incognito`；这不代表普通 Chrome 会被阻止安装，但真实安装确认仍需手动点击。
 
 建议你执行：
 
